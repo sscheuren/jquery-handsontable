@@ -549,8 +549,44 @@
         if (rlen === 0) {
           return false;
         }
+
+                // is only one column selected?
+                var isNumeric = false;
+                var diff = null; // the difference from cell to cell needed for autofilling
+                if (input[0].length == 1) {
+
+                    // make sure if there are only numbers selected
+                    for (var i = 0; i < rlen; i++) {
+                        isNumeric |= !isNaN(parseInt(input[0][i]));
+                    }
+
+                    var rowStart = start.row - rlen - 1;
+                    var rowEnd = start.row - 2;
+                    var dist = Math.abs(rowEnd - rowStart);
+
+
+                    if (isNumeric) {
+                        if (dist >= 1) {
+                            var fail = false;
+                            diff = input[1][0] - input[0][0];
+                            for (var j = 1; j <= dist; j++) {
+                                if (diff != input[j] - input[j - 1]) {
+                                    fail = true;
+                                }
+                            }
+                            if (fail) diff = null;
+                        }
+                        else if (dist == 0) {
+                            diff = 1;
+                        }
+                    }
+                }
+
         current.row = start.row;
         current.col = start.col;
+
+        var index = 1; // 1 based index for auto-increment values
+
         for (r = 0; r < rlen; r++) {
           if (end && current.row > end.row) {
             break;
@@ -563,7 +599,14 @@
             }
             td = grid.getCellAtCoords(current);
             if (grid.isCellWriteable($(td))) {
-              changes.push([current.row, current.col, datamap.get(current.row, current.col), input[r][c]]);
+		// if diff has a value, we auto-increment the next value
+		if (diff) {
+			var nextValue = parseInt(datamap.get(start.row - 1, current.col)) + diff * index;
+			changes.push([current.row, current.col, datamap.get(current.row, current.col), nextValue]);
+		}
+		else {
+			changes.push([current.row, current.col, datamap.get(current.row, current.col), input[r][c]]);
+		}
             }
             current.col++;
             if (end && c === clen - 1) {
